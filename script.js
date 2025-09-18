@@ -1,80 +1,122 @@
-var arr = [
-    { songName: "Jale 2", url: "./songs/Jale 2.mp3", img: "./images/jale.jpg" },
-    { songName: "Pehle Bhi main", url: "./songs/Pehle Bhi Main.mp3", img: "./images/animal.jpg" },
-    { songName: "Ram siya ram", url: "./songs/Ram Siya Ram.mp3", img: "./images/ram.jpg" },
-    { songName: "Arjan Valley", url: "./songs/Arjan Vailly Ne.mp3", img: "./images/animal.jpg" }
-]
-var allSongs = document.querySelector("#all-songs")
-var poster = document.querySelector("#left")
+import { songs } from "./dataArray.js";
 
-var play = document.querySelector("#play")
-var backward = document.querySelector("#backward")
-var forward = document.querySelector("#forward")
+class MusicPlayer {
+  constructor(
+    songs,
+    posterId,
+    songsContainerId,
+    playBtnId,
+    backwardBtnId,
+    forwardBtnId
+  ) {
+    this.songs = songs;
+    this.poster = document.getElementById(posterId);
+    this.songsContainer = document.getElementById(songsContainerId);
+    this.playBtn = document.getElementById(playBtnId);
+    this.backwardBtn = document.getElementById(backwardBtnId);
+    this.forwardBtn = document.getElementById(forwardBtnId);
 
+    this.selectedSong = 0;
+    this.audio = new Audio();
+    this.isPlaying = false;
 
+    this.init();
+  }
 
-var audio = new Audio()
+  init() {
+    this.renderSongs();
+    this.playSong(this.songs[this.selectedSong], false); // load first song but don’t autoplay
+    this.bindEvents();
+  }
 
-var selectedSong = 0
+  renderSongs() {
+    this.songsContainer.innerHTML = "";
 
-function mainFunction() {
-    var clutter = ""
+    this.songs.forEach((song, index) => {
+      // Parent song-card
+      const songCard = document.createElement("div");
+      songCard.classList.add("song-card");
+      songCard.id = `song-${index}`;
 
-    arr.forEach(function (elem, index) {
-        clutter += `<div class="song-card" id=${index}>
-    <div class="part1">
-        <img src=${elem.img} alt="">
-        <h2>${elem.songName}</h2>
-    </div>
-    <h6>3:56</h6>
-</div>`
-    })
-    allSongs.innerHTML = clutter
+      // Inner structure with innerHTML
+      songCard.innerHTML = `
+        <div class="part1">
+          <img src="${song.img}" alt="">
+          <h2>${song.songName}</h2>
+        </div>
+        <h6>${song.duration || "3:56"}</h6>
+      `;
 
-    audio.src = arr[selectedSong].url
-    poster.style.backgroundImage = `url(${arr[selectedSong].img})`
-}
-mainFunction()
+      // Append to container
+      this.songsContainer.appendChild(songCard);
+    });
+  }
 
-allSongs.addEventListener("click", function (dets) {
-    selectedSong = dets.target.id
-    mainFunction()
-    play.innerHTML = `<i class="ri-pause-mini-fill"></i>`
-    flag = 1
-    audio.play()
-})
+  playSong(songToPlay, autoplay = true) {
+    this.audio.src = songToPlay.url;
+    this.poster.style.backgroundImage = `url(${songToPlay.img})`;
 
-var flag = 0
+    if (autoplay) {
+      this.audio.play();
+      this.isPlaying = true;
+      this.updatePlayBtn();
+    }
+  }
 
-play.addEventListener("click", function () {
-    if (flag == 0) {
-        play.innerHTML = `<i class="ri-pause-mini-fill"></i>`
-        mainFunction()
-        audio.play()
-        flag = 1
+  togglePlayPause() {
+    if (this.isPlaying) {
+      this.audio.pause();
+      this.isPlaying = false;
     } else {
-        play.innerHTML = `<i class="ri-play-mini-fill"></i>`
-        mainFunction()
-        audio.pause()
-        flag = 0
+      this.audio.play();
+      this.isPlaying = true;
     }
-})
+    this.updatePlayBtn();
+  }
 
-forward.addEventListener("click", function () {
-    if (selectedSong < arr.length - 1) {
-        selectedSong++
-        mainFunction()
-        audio.play()
-    }else{
-        forward.style.opacity = 0.4
+  updatePlayBtn() {
+    this.playBtn.innerHTML = this.isPlaying
+      ? `<i class="ri-pause-mini-fill"></i>`
+      : `<i class="ri-play-mini-fill"></i>`;
+  }
+
+  playNext() {
+    if (this.selectedSong < this.songs.length - 1) {
+      this.selectedSong++;
+      this.playSong(this.songs[this.selectedSong]);
     }
-})
-backward.addEventListener("click", function () {
-    if (selectedSong > 0) {
-        selectedSong--
-        mainFunction()
-        audio.play()
-    }else{
-        backward.style.opacity = 0.4
+  }
+
+  playPrevious() {
+    if (this.selectedSong > 0) {
+      this.selectedSong--;
+      this.playSong(this.songs[this.selectedSong]);
     }
-})
+  }
+
+  bindEvents() {
+    // Play/Pause button
+    this.playBtn.addEventListener("click", () => this.togglePlayPause());
+
+    // Forward button
+    this.forwardBtn.addEventListener("click", () => this.playNext());
+
+    // Backward button
+    this.backwardBtn.addEventListener("click", () => this.playPrevious());
+
+    // Click on song card
+    this.songsContainer.addEventListener("click", (e) => {
+      const songCard = e.target.closest(".song-card");
+      if (songCard) {
+        const index = parseInt(songCard.id.split("-")[1]);
+        this.selectedSong = index;
+        this.playSong(this.songs[this.selectedSong]);
+      }
+    });
+  }
+}
+
+// Init after DOM ready
+document.addEventListener("DOMContentLoaded", () => {
+  new MusicPlayer(songs, "left", "all-songs", "play", "backward", "forward");
+});
